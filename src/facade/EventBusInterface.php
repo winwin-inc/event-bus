@@ -13,7 +13,7 @@ interface EventBusInterface
      *
      * @return string 返回 event_id
      */
-    public function publish(string $topic, string $eventName, array $payload);
+    public function publish($topic, $eventName, array $payload);
 
     /**
      * 订阅消息.
@@ -24,5 +24,5 @@ interface EventBusInterface
      * @throws \InvalidArgumentException                                    如果 topic 不存在
      * @throws \winwin\eventBus\facade\exception\AlreadySubscribedException 如果重复订阅
      */
-    public function subscribe(string $topic, string $notifyUrl);
+    public function subscribe($topic, $notifyUrl);
 }
