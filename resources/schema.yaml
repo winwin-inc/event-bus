@@ -1,0 +1,24 @@
+eventbus_event:
+  columns:
+    id: 'integer notnull autoincrement'
+    update_time: 'datetime notnull'
+    create_time: 'datetime notnull'
+    event_id: 'string(36) fixed notnull {"comment": "消息uuid"}'
+    event_name: 'string(50) notnull {"comment":"消息名称"}'
+    topic: 'string(30) notnull {"comment":"主题"}'
+    payload: 'string(1024) notnull {"comment":"消息体，json数据"}'
+    status: 'tinyint notnull {"comment":"消息消费状态","default":0}'
+  indexes:
+    PRIMARY: 'PRIMARY KEY(id)'
+    uk_event_id: 'UNIQUE KEY(event_id)'
+
+eventbus_subscriber:
+  columns:
+    id: 'integer notnull autoincrement'
+    update_time: 'datetime notnull'
+    create_time: 'datetime notnull'
+    topic: 'string(30) notnull {"comment":"主题"}'
+    notify_url: 'string(255) notnull {"comment":"订阅回调地址"}'
+  indexes:
+    PRIMARY: 'PRIMARY KEY(id)'
+    idx_event_id: 'KEY(topic)'

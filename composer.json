@@ -1,0 +1,46 @@
+{
+    "name": "winwin/event-bus",
+    "description": "消息订阅与发布",
+    "type": "project",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "preferred-install": "dist"
+    },
+    "require": {
+        "kuiper/boot": "^0.3",
+        "ramsey/uuid": "^3.7",
+        "winwin/job-queue": "^0.2",
+        "winwin/db-connection": "^0.3",
+        "winwin/support": "^0.1",
+        "webmozart/assert": "^1.2",
+        "guzzlehttp/guzzle": "^6.2",
+        "vlucas/valitron": "^1.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^6.0",
+        "winwin/composer-phpcs-plugin": "^0.1",
+        "mockery/mockery": "^0.9",
+        "vlucas/phpdotenv": "^2.4",
+        "winwin/providers": "^0.2",
+        "monolog/monolog": "^1.22",
+        "phpunit/dbunit": "^3.0",
+        "kuiper/annotations": "^0.3"
+    },
+    "autoload": {
+        "psr-4": {
+            "winwin\\eventBus\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "winwin\\eventBus\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-develop": "0.2-dev"
+        },
+        "publish-submodules": ["src/facade"]
+    }
+}
