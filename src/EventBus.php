@@ -47,7 +47,7 @@ class EventBus implements EventBusInterface
      *
      * @return string 返回 event_id
      */
-    public function publish(string $topic, string $eventName, array $payload)
+    public function publish($topic, $eventName, array $payload)
     {
         $payloadStr = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $validator = new Validator([
@@ -85,7 +85,7 @@ class EventBus implements EventBusInterface
      * @throws \InvalidArgumentException                                    如果 topic 不存在
      * @throws \winwin\eventBus\facade\exception\AlreadySubscribedException 如果重复订阅
      */
-    public function subscribe(string $topic, string $notifyUrl)
+    public function subscribe($topic, $notifyUrl)
     {
         $validator = new Validator([
             'topic' => $topic,
