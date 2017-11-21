@@ -4,6 +4,14 @@ namespace winwin\eventBus\constants;
 
 use kuiper\helper\Enum;
 
+/**
+ * Class EventStatus.
+ *
+ * @method static CREATE() : static
+ * @method static DONE() : static
+ * @method static ERROR() : static
+ * @method static RETRY() : static
+ */
 class EventStatus extends Enum
 {
     const CREATE = 0;

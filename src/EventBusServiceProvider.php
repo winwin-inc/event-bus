@@ -2,6 +2,7 @@
 
 namespace winwin\eventBus;
 
+use kuiper\boot\annotation\Module;
 use kuiper\boot\Provider;
 use kuiper\di;
 use winwin\db\orm\RepositoryFactory;
@@ -10,6 +11,11 @@ use winwin\eventBus\models\Event;
 use winwin\eventBus\models\Subscriber;
 use winwin\jobQueue\JobQueue;
 
+/**
+ * @Module
+ *
+ * Class EventBusServiceProvider
+ */
 class EventBusServiceProvider extends Provider
 {
     /**
