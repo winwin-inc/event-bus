@@ -10,6 +10,8 @@ use Symfony\Component\EventDispatcher\GenericEvent;
 
 class CallbackHandler implements MiddlewareInterface
 {
+    const DEFAULT_URI = '/event-bus/notification';
+
     /**
      * @var string
      */
@@ -26,7 +28,7 @@ class CallbackHandler implements MiddlewareInterface
      * @param EventDispatcherInterface $eventDispatcher
      * @param string                   $handlerUri
      */
-    public function __construct(EventDispatcherInterface $eventDispatcher, $handlerUri = '/event-bus/notification')
+    public function __construct(EventDispatcherInterface $eventDispatcher, $handlerUri = self::DEFAULT_URI)
     {
         $this->eventDispatcher = $eventDispatcher;
         $this->handlerUri = $handlerUri;
