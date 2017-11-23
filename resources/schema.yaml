@@ -11,6 +11,7 @@ eventbus_event:
   indexes:
     PRIMARY: 'PRIMARY KEY(id)'
     uk_event_id: 'UNIQUE KEY(event_id)'
+    idx_create_time: 'KEY(create_time)'
 
 eventbus_subscriber:
   columns:
