@@ -12,14 +12,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 use winwin\db\orm\Repository;
 use winwin\db\Statement;
 
-class ClearEvent extends Command implements LoggerAwareInterface
+class PurgeCommand extends Command implements LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
     /**
      * 清除3天之前的事件.
      */
-    const LIFECYCLE = 3;
+    const KEEP_DAYS = 3;
 
     /**
      * @Inject("eventBus.EventRepository")
@@ -31,24 +31,20 @@ class ClearEvent extends Command implements LoggerAwareInterface
     protected function configure()
     {
         parent::configure();
-        $this->setName('clear:event')
+        $this->setName('event-bus:purge')
             ->setDescription('清除过期的事件,默认清除3天前的事件');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $row = $this->eventRepository->delete(function ($stmt) {
+        $this->eventRepository->delete(function ($stmt) {
             /* @var Statement $stmt */
             $stmt->where('status=?', 1);
-            $stmt->where('create_time < ?', Carbon::parse()->subDays(self::LIFECYCLE)->toDateTimeString());
+            $stmt->where('create_time < ?', Carbon::now()->subDays(self::KEEP_DAYS)->toDateTimeString());
 
             return $stmt;
         });
 
-        if ($row) {
-            $output->writeln('<info>清除过期的事件成功</>');
-        } else {
-            $output->writeln('清除事件失败');
-        }
+        $output->writeln('<info>清除过期的事件成功</>');
     }
 }

@@ -18,7 +18,7 @@ use winwin\eventBus\constants\EventStatus;
  * Class Event.
  *
  * @Entity
- * @Table("eventbus_event", uniqueConstraints={@UniqueConstraint("event_id", columns={"event_id"})})
+ * @Table(uniqueConstraints={@UniqueConstraint("event_id", columns={"event_id"})})
  */
 class Event
 {

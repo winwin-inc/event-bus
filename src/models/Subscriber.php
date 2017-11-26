@@ -14,7 +14,7 @@ use winwin\db\orm\annotation\UpdatedAt;
  * Class Subscriber.
  *
  * @Entity
- * @Table("eventbus_subscriber")
+ * @Table
  */
 class Subscriber
 {
