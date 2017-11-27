@@ -25,7 +25,8 @@ class SubscribeCommand extends Command implements ContainerAwareInterface
     protected function configure()
     {
         $this->setName('event-bus:subscribe')
-            ->addOption('uri', null, null, '')
+            ->setDescription('注册订阅回调地址')
+            ->addOption('uri', null, null, '回调地址')
             ->addArgument('topic', InputArgument::REQUIRED, '订阅消息主题');
     }
 

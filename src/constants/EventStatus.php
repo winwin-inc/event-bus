@@ -7,10 +7,10 @@ use kuiper\helper\Enum;
 /**
  * Class EventStatus.
  *
- * @method static CREATE() : static
- * @method static DONE() : static
- * @method static ERROR() : static
- * @method static RETRY() : static
+ * @method CREATE() : static
+ * @method DONE() : static
+ * @method ERROR() : static
+ * @method RETRY() : static
  */
 class EventStatus extends Enum
 {

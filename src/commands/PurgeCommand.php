@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use winwin\db\orm\Repository;
 use winwin\db\Statement;
+use winwin\eventBus\constants\EventStatus;
 
 class PurgeCommand extends Command implements LoggerAwareInterface
 {
@@ -20,6 +21,11 @@ class PurgeCommand extends Command implements LoggerAwareInterface
      * 清除3天之前的事件.
      */
     const KEEP_DAYS = 3;
+
+    /**
+     * 每次删除记录数.
+     */
+    const BATCH_SIZE = 2000;
 
     /**
      * @Inject("eventBus.EventRepository")
@@ -37,14 +43,22 @@ class PurgeCommand extends Command implements LoggerAwareInterface
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->eventRepository->delete(function ($stmt) {
-            /* @var Statement $stmt */
-            $stmt->where('status=?', 1);
-            $stmt->where('create_time < ?', Carbon::now()->subDays(self::KEEP_DAYS)->toDateTimeString());
+        $records = 0;
+        do {
+            $this->eventRepository->delete(function ($stmt) {
+                /* @var Statement $stmt */
+                $stmt->where('status=?', EventStatus::DONE);
+                $stmt->where('create_time < ?', Carbon::now()->subDays(self::KEEP_DAYS)->toDateTimeString());
+                $stmt->limit(self::BATCH_SIZE);
 
-            return $stmt;
-        });
+                return $stmt;
+            });
+            $rows = $this->eventRepository->getLastStatement()->rowCount();
+            $records += $rows;
+        } while ($rows > 0);
 
-        $output->writeln('<info>清除过期的事件成功</>');
+        $message = "清除过期的事件成功，共删除 $records 条记录";
+        $this->logger->info('[PurgeCommand] '.$message);
+        $output->writeln("<info>$message</info>");
     }
 }
