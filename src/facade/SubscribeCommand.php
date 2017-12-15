@@ -8,6 +8,7 @@ use kuiper\di\ContainerAwareTrait;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 
@@ -26,7 +27,7 @@ class SubscribeCommand extends Command implements ContainerAwareInterface
     {
         $this->setName('event-bus:subscribe')
             ->setDescription('注册订阅回调地址')
-            ->addOption('uri', null, null, '回调地址')
+            ->addOption('uri', null, InputOption::VALUE_REQUIRED, '回调地址')
             ->addArgument('topic', InputArgument::REQUIRED, '订阅消息主题');
     }
 
