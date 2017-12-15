@@ -3,12 +3,14 @@
 namespace winwin\eventBus\jobs;
 
 use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\GuzzleException;
 use kuiper\di\annotation\Inject;
 use kuiper\helper\Arrays;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
 use winwin\db\orm\Repository;
 use winwin\eventBus\constants\EventStatus;
+use winwin\eventBus\exceptions\NotifyException;
 use winwin\eventBus\models\Event;
 use winwin\eventBus\models\Subscriber;
 use winwin\jobQueue\JobInterface;
@@ -86,23 +88,37 @@ class NotifyJob implements JobInterface, LoggerAwareInterface
         $this->eventRepository->update($event);
     }
 
+    /**
+     * @param Event      $event
+     * @param Subscriber $subscriber
+     *
+     * @throws NotifyException
+     */
     private function notify(Event $event, Subscriber $subscriber)
     {
-        $response = $this->httpClient->request('POST', $subscriber->getNotifyUrl(), [
-            'headers' => [
-                'content-type' => 'application/json',
-            ],
-            'body' => json_encode([
-                'create_time' => $event->getCreateTime()->format(DATE_ATOM),
-                'event_id' => $event->getEventId(),
-                'topic' => $event->getTopic(),
-                'event_name' => $event->getEventName(),
-                'payload' => $event->getPayload(),
-            ]),
+        $payload = [
+            'create_time' => $event->getCreateTime()->format(DATE_ATOM),
+            'event_id' => $event->getEventId(),
+            'topic' => $event->getTopic(),
+            'event_name' => $event->getEventName(),
+            'payload' => $event->getPayload(),
+        ];
+        $this->logger->info('[NotifyJob] notify '.$subscriber->getNotifyUrl(), [
+            'payload' => $payload,
         ]);
-        $ret = json_decode((string) $response->getBody(), true);
-        if (!isset($ret['success']) || $ret['success'] !== true) {
-            throw new \RuntimeException('Bad notification response: '.$response->getBody());
+        try {
+            $response = $this->httpClient->request('POST', $subscriber->getNotifyUrl(), [
+                'headers' => [
+                    'content-type' => 'application/json',
+                ],
+                'body' => json_encode($payload),
+            ]);
+            $ret = json_decode((string) $response->getBody(), true);
+            if (!isset($ret['success']) || $ret['success'] !== true) {
+                throw new NotifyException('Bad notification response: '.$response->getBody());
+            }
+        } catch (GuzzleException $e) {
+            throw new NotifyException($e->getMessage(), $e->getCode(), $e);
         }
     }
 
@@ -143,7 +159,7 @@ class NotifyJob implements JobInterface, LoggerAwareInterface
         foreach ($subscribers as $subscriber) {
             try {
                 $this->notify($event, $subscriber);
-            } catch (\Exception $e) {
+            } catch (NotifyException $e) {
                 $this->logger->warning('[NotifyJob] notify failed', [
                     'event_id' => $event->getEventId(),
                     'notify_url' => $subscriber->getNotifyUrl(),
