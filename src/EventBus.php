@@ -2,6 +2,7 @@
 
 namespace winwin\eventBus;
 
+use Domnikl\Statsd;
 use kuiper\di\annotation\Inject;
 use Ramsey\Uuid\Uuid;
 use Valitron\Validator;
@@ -39,6 +40,13 @@ class EventBus implements EventBusInterface
     private $jobQueue;
 
     /**
+     * @Inject
+     *
+     * @var Statsd\Client
+     */
+    private $statsdClient;
+
+    /**
      * 发布消息.
      *
      * @param string $topic     订阅主题
@@ -72,6 +80,7 @@ class EventBus implements EventBusInterface
         $this->jobQueue->put(NotifyJob::class, [
             'event_id' => $event->getEventId(),
         ]);
+        $this->statsdClient->increment(sprintf('eventbus.publish.%s.%s', $event->getTopic(), $event->getEventName()));
 
         return $event->getEventId();
     }

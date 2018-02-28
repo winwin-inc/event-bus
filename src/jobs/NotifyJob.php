@@ -2,6 +2,7 @@
 
 namespace winwin\eventBus\jobs;
 
+use Domnikl\Statsd;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
 use kuiper\di\annotation\Inject;
@@ -48,6 +49,13 @@ class NotifyJob implements JobInterface, LoggerAwareInterface
      */
     private $httpClient;
 
+    /**
+     * @Inject
+     *
+     * @var Statsd\Client
+     */
+    private $statsdClient;
+
     private static $RETRY_INTERVALS = [15, 30, 300, 1800];
 
     /**
@@ -82,6 +90,7 @@ class NotifyJob implements JobInterface, LoggerAwareInterface
             if ($this->retry($arguments, $failed)) {
                 $event->setStatus(EventStatus::RETRY());
             } else {
+                $this->statsdClient->increment(sprintf('eventbus.notify.error.%s.%s', $event->getTopic(), $event->getEventName()));
                 $event->setStatus(EventStatus::ERROR());
             }
         }
@@ -157,9 +166,14 @@ class NotifyJob implements JobInterface, LoggerAwareInterface
     {
         $failed = [];
         foreach ($subscribers as $subscriber) {
+            $startTime = microtime(true);
             try {
                 $this->notify($event, $subscriber);
+                $this->statsdClient->timing(sprintf('eventbus.notify.success.%s.%s', $event->getTopic(), $event->getEventName()),
+                    (int) (microtime(true) - $startTime) * 1000);
             } catch (NotifyException $e) {
+                $this->statsdClient->timing(sprintf('eventbus.notify.fail.%s.%s', $event->getTopic(), $event->getEventName()),
+                    (int) (microtime(true) - $startTime) * 1000);
                 $this->logger->warning('[NotifyJob] notify failed', [
                     'event_id' => $event->getEventId(),
                     'notify_url' => $subscriber->getNotifyUrl(),
