@@ -1,26 +1,18 @@
 <?php
 
-namespace winwin\eventBus\models;
+namespace winwin\eventBus\domain;
 
-use winwin\db\orm\annotation\Column;
-use winwin\db\orm\annotation\CreatedAt;
-use winwin\db\orm\annotation\Entity;
-use winwin\db\orm\annotation\GeneratedValue;
-use winwin\db\orm\annotation\Id;
-use winwin\db\orm\annotation\Table;
-use winwin\db\orm\annotation\UpdatedAt;
+use kuiper\db\annotation\CreationTimestamp;
+use kuiper\db\annotation\GeneratedValue;
+use kuiper\db\annotation\Id;
+use kuiper\db\annotation\NaturalId;
+use kuiper\db\annotation\UpdateTimestamp;
+use Symfony\Component\Validator\Constraints as Assert;
 
-/**
- * Class Subscriber.
- *
- * @Entity
- * @Table
- */
 class Subscriber
 {
     /**
      * @Id
-     * @Column
      * @GeneratedValue
      *
      * @var int
@@ -28,34 +20,37 @@ class Subscriber
     private $id;
 
     /**
-     * @Column
-     * @CreatedAt
+     * @CreationTimestamp()
      *
      * @var \DateTime
      */
     private $createTime;
 
     /**
-     * @Column
-     * @UpdatedAt
+     * @UpdateTimestamp()
      *
      * @var \DateTime
      */
     private $updateTime;
 
     /**
-     * @Column
-     *
      * @var string
+     * @NaturalId()
+     * @Assert\Length(min=1, max=30)
      */
     private $topic;
 
     /**
-     * @Column
-     *
      * @var string
+     * @NaturalId()
+     * @Assert\Length(min=1, max=255)
      */
     private $notifyUrl;
+
+    /**
+     * @var bool
+     */
+    private $enabled;
 
     /**
      * @return int
@@ -155,5 +150,21 @@ class Subscriber
         $this->notifyUrl = $notifyUrl;
 
         return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isEnabled(): bool
+    {
+        return $this->enabled;
+    }
+
+    /**
+     * @param bool $enabled
+     */
+    public function setEnabled(bool $enabled): void
+    {
+        $this->enabled = $enabled;
     }
 }

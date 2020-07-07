@@ -1,0 +1,13 @@
+module winwin
+{
+    interface EventBus
+    {
+        string publish(string topic, string event, string payload);
+
+        void subscribe(string topic, string handler);
+
+        bool unsubscribe(string topic, string handler);
+
+        int purge(int keepDays);
+    };
+};

@@ -9,3 +9,4 @@ composer.lock
 /routes/dev.php
 /features/scratch.feature
 .phplint-cache
+/subscriber-demo/vendor/

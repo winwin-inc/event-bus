@@ -5,155 +5,119 @@ namespace winwin\eventBus\jobs;
 use Domnikl\Statsd;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
-use kuiper\di\annotation\Inject;
+use kuiper\db\Criteria;
 use kuiper\helper\Arrays;
+use kuiper\helper\Text;
 use Psr\Log\LoggerAwareInterface;
 use Psr\Log\LoggerAwareTrait;
-use winwin\db\orm\Repository;
+use wenbinye\tars\rpc\exception\ConnectionException;
+use wenbinye\tars\rpc\exception\ServerException;
+use wenbinye\tars\rpc\TarsClientFactoryInterface;
+use winwin\eventBus\client\EventBusSubscriberServant;
+use winwin\eventBus\client\Notification;
 use winwin\eventBus\constants\EventStatus;
+use winwin\eventBus\domain\Event;
+use winwin\eventBus\domain\EventRepository;
+use winwin\eventBus\domain\Log;
+use winwin\eventBus\domain\LogRepository;
+use winwin\eventBus\domain\Subscriber;
+use winwin\eventBus\domain\SubscriberRepository;
 use winwin\eventBus\exceptions\NotifyException;
-use winwin\eventBus\models\Event;
-use winwin\eventBus\models\Subscriber;
-use winwin\jobQueue\JobInterface;
-use winwin\jobQueue\JobQueueInterface;
+use winwin\jobQueue\JobFactoryInterface;
+use winwin\jobQueue\JobHandlerInterface;
 
-class NotifyJob implements JobInterface, LoggerAwareInterface
+class NotifyJob implements JobHandlerInterface, LoggerAwareInterface
 {
     use LoggerAwareTrait;
 
+    protected const TAG = '['.__CLASS__.'] ';
+
+    private static $RETRY_INTERVALS = [15, 30, 300, 1800];
+
     /**
-     * @Inject("eventBus.EventRepository")
-     *
-     * @var Repository
+     * @var EventRepository
      */
     private $eventRepository;
 
     /**
-     * @Inject("eventBus.SubscriberRepository")
-     *
-     * @var Repository
+     * @var SubscriberRepository
      */
     private $subscriberRepository;
 
     /**
-     * @Inject("eventBus.JobQueue")
-     *
-     * @var JobQueueInterface
+     * @var LogRepository
      */
-    private $jobQueue;
+    private $logRepository;
 
     /**
-     * @Inject
-     *
+     * @var JobFactoryInterface
+     */
+    private $jobFactory;
+
+    /**
      * @var ClientInterface
      */
     private $httpClient;
 
     /**
-     * @Inject
-     *
+     * @var TarsClientFactoryInterface
+     */
+    private $tarsClientFactory;
+
+    /**
      * @var Statsd\Client
      */
     private $statsdClient;
 
-    private static $RETRY_INTERVALS = [15, 30, 300, 1800];
-
     /**
-     * @param array $arguments
+     * @var EventBusSubscriberServant[]
      */
-    public function process(array $arguments)
+    private $tarsClients;
+
+    public function __construct(
+        EventRepository $eventRepository,
+        SubscriberRepository $subscriberRepository,
+        LogRepository $logRepository,
+        JobFactoryInterface $jobFactory,
+        ClientInterface $httpClient,
+        TarsClientFactoryInterface $tarsClientFactory,
+        Statsd\Client $statsdClient
+    ) {
+        $this->eventRepository = $eventRepository;
+        $this->subscriberRepository = $subscriberRepository;
+        $this->logRepository = $logRepository;
+        $this->jobFactory = $jobFactory;
+        $this->httpClient = $httpClient;
+        $this->tarsClientFactory = $tarsClientFactory;
+        $this->statsdClient = $statsdClient;
+    }
+
+    public function handle(array $arguments): void
     {
-        /** @var Event $event */
-        $event = $this->eventRepository->findOne(['event_id' => $arguments['event_id']]);
+        $event = $this->eventRepository->findFirstBy(Criteria::create([
+            'eventId' => $arguments['event_id'],
+        ]));
         if ($event->getStatus()->isDone()) {
             return;
         }
-
-        if (empty($arguments['subscribers'])) {
-            /** @var Subscriber[] $subscribers */
-            $subscribers = $this->subscriberRepository->query(['topic' => $event->getTopic()]);
-        } else {
-            $subscribers = [];
-            foreach ($arguments['subscribers'] as $notifyUrl) {
-                $subscriber = new Subscriber();
-                $subscriber->setTopic($event->getTopic())
-                    ->setNotifyUrl($notifyUrl);
-                $subscribers[] = $subscriber;
-            }
+        $criteria = Criteria::create([
+            'topic' => $event->getTopic(),
+            'enabled' => true,
+        ]);
+        if (!empty($arguments['subscribers'])) {
+            $criteria->in('notifyUrl', $arguments['subscribers']);
         }
+        $subscribers = $this->subscriberRepository->findAllBy($criteria);
 
         $failed = $this->notifyAll($event, $subscribers);
-
         if (empty($failed)) {
             $event->setStatus(EventStatus::DONE());
+        } elseif ($this->retry($arguments, $failed)) {
+            $event->setStatus(EventStatus::RETRY());
         } else {
-            if ($this->retry($arguments, $failed)) {
-                $event->setStatus(EventStatus::RETRY());
-            } else {
-                $this->statsdClient->increment(sprintf('eventbus.notify.error.%s.%s', $event->getTopic(), $event->getEventName()));
-                $event->setStatus(EventStatus::ERROR());
-            }
+            $event->setStatus(EventStatus::ERROR());
         }
         $this->eventRepository->update($event);
-    }
-
-    /**
-     * @param Event      $event
-     * @param Subscriber $subscriber
-     *
-     * @throws NotifyException
-     */
-    private function notify(Event $event, Subscriber $subscriber)
-    {
-        $payload = [
-            'create_time' => $event->getCreateTime()->format(DATE_ATOM),
-            'event_id' => $event->getEventId(),
-            'topic' => $event->getTopic(),
-            'event_name' => $event->getEventName(),
-            'payload' => $event->getPayload(),
-        ];
-        $this->logger->info('[NotifyJob] notify '.$subscriber->getNotifyUrl(), [
-            'payload' => $payload,
-        ]);
-        try {
-            $response = $this->httpClient->request('POST', $subscriber->getNotifyUrl(), [
-                'headers' => [
-                    'content-type' => 'application/json',
-                ],
-                'body' => json_encode($payload),
-            ]);
-            $ret = json_decode((string) $response->getBody(), true);
-            if (!isset($ret['success']) || $ret['success'] !== true) {
-                throw new NotifyException('Bad notification response: '.$response->getBody());
-            }
-        } catch (GuzzleException $e) {
-            throw new NotifyException($e->getMessage(), $e->getCode(), $e);
-        }
-    }
-
-    /**
-     * @param array        $arguments
-     * @param Subscriber[] $failed
-     *
-     * @return bool
-     */
-    private function retry(array $arguments, array $failed)
-    {
-        $retryTimes = $arguments['retry_times'] ?? 0;
-        $arguments['retry_times'] = $retryTimes + 1;
-        $arguments['subscribers'] = Arrays::pull($failed, 'notifyUrl', Arrays::GETTER);
-        if ($retryTimes >= count(self::$RETRY_INTERVALS)) {
-            $this->logger->error('[NotifyJob] notify stopped', [
-                'event_id' => $arguments['event_id'],
-                'subscribers' => $arguments['subscribers'],
-            ]);
-
-            return false;
-        } else {
-            $this->jobQueue->put(__CLASS__, $arguments, self::$RETRY_INTERVALS[$retryTimes]);
-
-            return true;
-        }
     }
 
     /**
@@ -167,22 +131,126 @@ class NotifyJob implements JobInterface, LoggerAwareInterface
         $failed = [];
         foreach ($subscribers as $subscriber) {
             $startTime = microtime(true);
+            $log = $this->createLog($event, $subscriber);
             try {
                 $this->notify($event, $subscriber);
-                $this->statsdClient->timing(sprintf('eventbus.notify.success.%s.%s', $event->getTopic(), $event->getEventName()),
-                    (int) (microtime(true) - $startTime) * 1000);
+                $log->setErrorCode(Log::SUCCESS)
+                    ->setErrorDesc('');
             } catch (NotifyException $e) {
-                $this->statsdClient->timing(sprintf('eventbus.notify.fail.%s.%s', $event->getTopic(), $event->getEventName()),
-                    (int) (microtime(true) - $startTime) * 1000);
-                $this->logger->warning('[NotifyJob] notify failed', [
+                $this->logger->error(static::TAG.'notify failed', [
                     'event_id' => $event->getEventId(),
                     'notify_url' => $subscriber->getNotifyUrl(),
                     'error' => $e->getMessage(),
                 ]);
+                $log->setErrorCode(is_numeric($e->getCode()) && 0 !== $e->getCode()
+                    ? $e->getCode()
+                    : Log::UNKNOWN_ERROR);
+                $log->setErrorDesc(str_replace("\n", ' ', substr((string) $e, 0, Log::MAX_MESSAGE_LEN)));
                 $failed[] = $subscriber;
+            } finally {
+                $log->setResponseTimeByStartTime($startTime);
+                $this->logRepository->insert($log);
+                if ($log->isSuccess()) {
+                    $this->statsdClient->timing(
+                        sprintf('eventbus.%s_%s', $event->getTopic(), $event->getEventName()),
+                        $log->getResponseTime()
+                    );
+                }
             }
         }
 
         return $failed;
+    }
+
+    /**
+     * @throws NotifyException
+     */
+    private function notify(Event $event, Subscriber $subscriber)
+    {
+        $notification = new Notification();
+        $notification->createTime = $event->getCreateTime()->format(DATE_ATOM);
+        $notification->eventId = $event->getEventId();
+        $notification->topic = $event->getTopic();
+        $notification->eventName = $event->getEventName();
+        $notification->payload = $event->getPayload();
+
+        $this->logger->info(static::TAG.'notify '.$subscriber->getNotifyUrl(), ['eventId' => $notification->eventId]);
+        if (Text::startsWith($subscriber->getNotifyUrl(), 'tars://')) {
+            $this->notifyByTarRpc($subscriber, $notification);
+        } elseif (preg_match('#^https?://#', $subscriber->getNotifyUrl())) {
+            $this->notifyByHttp($subscriber, $notification);
+        } else {
+            throw new \InvalidArgumentException('tars ');
+        }
+    }
+
+    private function notifyByTarRpc(Subscriber $subscriber, Notification $notification)
+    {
+        $servantName = substr($subscriber->getNotifyUrl(), strlen('tars://'));
+        if (!isset($this->tarsClients[$servantName])) {
+            /* @var EventBusSubscriberServant $client */
+            $this->tarsClients[$servantName] = $this->tarsClientFactory->create(EventBusSubscriberServant::class, $servantName);
+        }
+        try {
+            $this->tarsClients[$servantName]->handle($notification);
+        } catch (ConnectionException | ServerException $e) {
+            throw new NotifyException($e->getMessage(), $e->getCode(), $e);
+        }
+    }
+
+    private function notifyByHttp(Subscriber $subscriber, Notification $notification)
+    {
+        try {
+            $notification->payload = json_decode($notification->payload, true);
+            $response = $this->httpClient->request('POST', $subscriber->getNotifyUrl(), [
+                'headers' => [
+                    'content-type' => 'application/json',
+                ],
+                'body' => json_encode(Arrays::toArray($notification, false, true)),
+            ]);
+            $ret = json_decode((string) $response->getBody(), true);
+            if (!isset($ret['success']) || true !== $ret['success']) {
+                throw new NotifyException('Bad notification response: '.$response->getBody());
+            }
+        } catch (GuzzleException $e) {
+            throw new NotifyException($e->getMessage(), $e->getCode(), $e);
+        }
+    }
+
+    /**
+     * @param Subscriber[] $failed
+     */
+    private function retry(array $arguments, array $failed): bool
+    {
+        $retryTimes = ($arguments['retry_times'] ?? 0) + 1;
+        $subscribers = Arrays::pull($failed, 'notifyUrl');
+        if ($retryTimes >= count(self::$RETRY_INTERVALS)) {
+            $this->logger->error(static::TAG.'notify stopped', [
+                'event_id' => $arguments['event_id'],
+                'subscribers' => $subscribers,
+            ]);
+
+            return false;
+        }
+
+        $this->jobFactory->create(__CLASS__, array_merge($arguments, [
+            'retry_times' => $retryTimes,
+            'subscribers' => $subscribers,
+        ]))
+            ->delay(self::$RETRY_INTERVALS[$retryTimes])
+            ->put();
+
+        return true;
+    }
+
+    private function createLog(Event $event, Subscriber $subscriber): Log
+    {
+        $log = new Log();
+        $log->setEventId($event->getEventId())
+            ->setSubscriberId($subscriber->getId())
+            ->setErrorCode(Log::UNKNOWN_ERROR)
+            ->setErrorDesc('unknown');
+
+        return $log;
     }
 }

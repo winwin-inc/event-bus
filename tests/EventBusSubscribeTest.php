@@ -2,8 +2,9 @@
 
 namespace winwin\eventBus;
 
+use InvalidArgumentException;
 use PHPUnit\DbUnit\DataSet\IDataSet;
-use winwin\eventBus\facade\EventBusInterface;
+use winwin\eventBus\servant\EventBusServant;
 
 class EventBusSubscribeTest extends TestCase
 {
@@ -16,11 +17,9 @@ class EventBusSubscribeTest extends TestCase
         $this->assertTableRowCount('eventbus_subscriber', 2);
     }
 
-    /**
-     * @expectedException \winwin\eventBus\facade\exception\AlreadySubscribedException
-     */
     public function testAlreadySubscribe()
     {
+        $this->expectException(InvalidArgumentException::class);
         $eventBus = $this->createEventBus();
         $eventBus->subscribe('merchant', 'http://localhost/event-bus/notification');
     }
@@ -42,19 +41,17 @@ class EventBusSubscribeTest extends TestCase
                     'create_time' => '2017-11-20 17:14:34',
                     'topic' => 'merchant',
                     'notify_url' => 'http://localhost/event-bus/notification',
+                    'enabled' => 1,
                 ],
             ],
         ]);
     }
 
     /**
-     * @return EventBusInterface
+     * @return EventBusServant
      */
     private function createEventBus()
     {
-        $container = $this->getContainer([
-        ]);
-
-        return $container->get(EventBusInterface::class);
+        return $this->getContainer()->get(EventBusServant::class);
     }
 }

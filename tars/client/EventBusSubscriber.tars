@@ -1,0 +1,15 @@
+module winwin
+{
+    struct Notification {
+        0 require string createTime;
+        1 require string eventId;
+        2 require string topic;
+        3 require string eventName;
+        4 require string payload;
+    }
+    
+    interface EventBusSubscriber
+    {
+        void handle(Notification notification);
+    };
+};

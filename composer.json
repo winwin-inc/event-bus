@@ -4,29 +4,25 @@
     "type": "project",
     "minimum-stability": "dev",
     "prefer-stable": true,
-    "config": {
-        "preferred-install": "dist"
-    },
     "require": {
-        "kuiper/boot": "^0.3",
-        "ramsey/uuid": "^3.7",
-        "winwin/job-queue": "^0.2",
-        "winwin/db-connection": "^0.3",
-        "winwin/support": "^0.1",
-        "webmozart/assert": "^1.2",
-        "guzzlehttp/guzzle": "^6.2",
-        "vlucas/valitron": "^1.4",
-        "domnikl/statsd": "^2.5"
+        "php": "^7.2",
+        "ext-json": "*",
+        "domnikl/statsd": "^3.0",
+        "guzzlehttp/guzzle": "^7.0",
+        "nesbot/carbon": "^2.36",
+        "ramsey/uuid": "^4.0",
+        "symfony/validator": "^5.1",
+        "vlucas/phpdotenv": "^5.0",
+        "wenbinye/tars": "^0.1",
+        "winwin/job-queue": "dev-feature-swoole"
     },
     "require-dev": {
-        "phpunit/phpunit": "^6.0",
-        "winwin/composer-phpcs-plugin": "^0.1",
-        "mockery/mockery": "^0.9",
-        "vlucas/phpdotenv": "^2.4",
-        "winwin/providers": "^0.2",
-        "monolog/monolog": "^1.22",
-        "phpunit/dbunit": "^3.0",
-        "kuiper/annotations": "^0.3"
+        "kuiper/component-installer": "^0.1.0",
+        "mockery/mockery": "^1.3",
+        "phpunit/dbunit": "^4.0",
+        "phpunit/phpunit": "^7.0",
+        "wenbinye/tars-gen": "^0.1",
+        "winwin/composer-phpcs-plugin": "^0.2"
     },
     "autoload": {
         "psr-4": {
@@ -38,10 +34,21 @@
             "winwin\\eventBus\\": "tests/"
         }
     },
+    "scripts": {
+        "package": "wenbinye\\tars\\server\\ServerApplication::package",
+        "container-config": "kuiper\\component\\ComponentInstaller::generate",
+        "serve": "@php src/index.php --config config.conf",
+        "gen": "./vendor/bin/tars-gen"
+    },
     "extra": {
-        "branch-alias": {
-            "dev-develop": "0.1-dev"
-        },
-        "publish-submodules": ["src/facade"]
+        "kuiper": {
+            "config-file": "src/container.php",
+            "whitelist": ["wenbinye/tars", "winwin/job-queue"],
+            "blacklist": ["kuiper/kuiper"],
+            "configuration": [
+                "kuiper\\db\\DbConfiguration",
+                "kuiper\\http\\client\\HttpClientConfiguration"
+            ]
+        }
     }
 }

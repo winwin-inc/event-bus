@@ -1,6 +1,6 @@
 eventbus_event:
   columns:
-    id: 'integer notnull autoincrement'
+    id: 'bigint notnull autoincrement'
     update_time: 'datetime notnull'
     create_time: 'datetime notnull'
     event_id: 'string(36) fixed notnull {"comment": "消息uuid"}'
@@ -20,6 +20,22 @@ eventbus_subscriber:
     create_time: 'datetime notnull'
     topic: 'string(30) notnull {"comment":"主题"}'
     notify_url: 'string(255) notnull {"comment":"订阅回调地址"}'
+    enabled: 'tinyint notnull {"comment":"是否启用回调地址","default":0}'
   indexes:
     PRIMARY: 'PRIMARY KEY(id)'
     idx_event_id: 'KEY(topic)'
+
+eventbus_log:
+  columns:
+    id: 'bigint notnull autoincrement'
+    update_time: 'datetime notnull'
+    create_time: 'datetime notnull'
+    event_id: 'string(36) fixed notnull {"comment": "消息uuid"}'
+    subscriber_id: 'integer notnull {"comment":"subscriber id"}'
+    response_time: 'integer notnull {"comment":"消息耗时,单位 ms","default":0}'
+    error_code: 'integer notnull {"comment":"错误代码","default":0}'
+    error_desc: 'string(255) notnull {"comment":"错误原因"}'
+  indexes:
+    PRIMARY: 'PRIMARY KEY(id)'
+    idx_event_id: 'KEY(event_id)'
+    idx_create_time: 'KEY(create_time)'

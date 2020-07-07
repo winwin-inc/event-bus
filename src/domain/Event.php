@@ -1,30 +1,20 @@
 <?php
 
-namespace winwin\eventBus\models;
+namespace winwin\eventBus\domain;
 
-use winwin\db\orm\annotation\Column;
-use winwin\db\orm\annotation\CreatedAt;
-use winwin\db\orm\annotation\Entity;
-use winwin\db\orm\annotation\Enum;
-use winwin\db\orm\annotation\GeneratedValue;
-use winwin\db\orm\annotation\Id;
-use winwin\db\orm\annotation\Serializer;
-use winwin\db\orm\annotation\Table;
-use winwin\db\orm\annotation\UniqueConstraint;
-use winwin\db\orm\annotation\UpdatedAt;
+use kuiper\db\annotation\CreationTimestamp;
+use kuiper\db\annotation\Enumerated;
+use kuiper\db\annotation\GeneratedValue;
+use kuiper\db\annotation\Id;
+use kuiper\db\annotation\NaturalId;
+use kuiper\db\annotation\UpdateTimestamp;
+use Symfony\Component\Validator\Constraints as Assert;
 use winwin\eventBus\constants\EventStatus;
 
-/**
- * Class Event.
- *
- * @Entity
- * @Table(uniqueConstraints={@UniqueConstraint("event_id", columns={"event_id"})})
- */
 class Event
 {
     /**
      * @Id
-     * @Column
      * @GeneratedValue
      *
      * @var int
@@ -32,53 +22,46 @@ class Event
     private $id;
 
     /**
-     * @Column
-     * @CreatedAt
+     * @CreationTimestamp()
      *
      * @var \DateTime
      */
     private $createTime;
 
     /**
-     * @Column
-     * @UpdatedAt
+     * @UpdateTimestamp()
      *
      * @var \DateTime
      */
     private $updateTime;
 
     /**
-     * @Column
-     *
      * @var string
+     * @NaturalId()
+     * @Assert\Length(min=1, max=36)
      */
     private $eventId;
 
     /**
-     * @Column
-     *
      * @var string
+     * @Assert\Length(min=1, max=30)
      */
     private $topic;
 
     /**
-     * @Column
-     *
      * @var string
+     * @Assert\Length(min=1, max=30)
      */
     private $eventName;
 
     /**
-     * @Serializer("json")
-     * @Column
-     *
-     * @var array
+     * @var string
+     * @Assert\Length(max=1000)
      */
     private $payload;
 
     /**
-     * @Enum
-     * @Column
+     * @Enumerated()
      *
      * @var EventStatus
      */
@@ -205,7 +188,7 @@ class Event
     }
 
     /**
-     * @return mixed
+     * @return string
      */
     public function getPayload()
     {
@@ -213,11 +196,11 @@ class Event
     }
 
     /**
-     * @param mixed $payload
+     * @param string $payload
      *
      * @return Event
      */
-    public function setPayload($payload)
+    public function setPayload(string $payload)
     {
         $this->payload = $payload;
 

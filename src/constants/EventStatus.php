@@ -8,16 +8,16 @@ use kuiper\helper\Enum;
  * Class EventStatus.
  *
  * @method CREATE() : static
- * @method DONE() : static
- * @method ERROR() : static
- * @method RETRY() : static
+ * @method DONE()   : static
+ * @method ERROR()  : static
+ * @method RETRY()  : static
  */
 class EventStatus extends Enum
 {
-    const CREATE = 0;
-    const DONE = 1;
-    const ERROR = 2;
-    const RETRY = 3;
+    public const CREATE = 0;
+    public const DONE = 1;
+    public const ERROR = 2;
+    public const RETRY = 3;
 
     public static function fromValue($value, $default = null)
     {
@@ -26,6 +26,6 @@ class EventStatus extends Enum
 
     public function isDone()
     {
-        return in_array($this->value, [self::DONE, self::ERROR]);
+        return in_array($this->value, [self::DONE, self::ERROR], true);
     }
 }
