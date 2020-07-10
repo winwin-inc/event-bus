@@ -4,6 +4,8 @@ module winwin
     {
         string publish(string topic, string event, string payload);
 
+        bool publishNow(string topic, string event, string payload);
+
         void subscribe(string topic, string handler);
 
         bool unsubscribe(string topic, string handler);

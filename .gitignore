@@ -10,3 +10,4 @@ composer.lock
 /features/scratch.feature
 .phplint-cache
 /subscriber-demo/vendor/
+*.tar.gz

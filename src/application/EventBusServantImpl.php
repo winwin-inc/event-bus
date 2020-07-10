@@ -47,6 +47,11 @@ class EventBusServantImpl implements EventBusServant, LoggerAwareInterface
     private $logRepository;
 
     /**
+     * @var EventBusNotifyService
+     */
+    private $eventBusNotifyService;
+
+    /**
      * @var JobFactoryInterface
      */
     private $jobFactory;
@@ -60,12 +65,14 @@ class EventBusServantImpl implements EventBusServant, LoggerAwareInterface
         EventRepository $eventRepository,
         SubscriberRepository $subscriberRepository,
         LogRepository $logRepository,
+        EventBusNotifyService $eventBusNotifyService,
         JobFactoryInterface $jobFactory,
         ValidatorInterface $validator)
     {
         $this->eventRepository = $eventRepository;
         $this->subscriberRepository = $subscriberRepository;
         $this->logRepository = $logRepository;
+        $this->eventBusNotifyService = $eventBusNotifyService;
         $this->jobFactory = $jobFactory;
         $this->validator = $validator;
     }
@@ -75,22 +82,38 @@ class EventBusServantImpl implements EventBusServant, LoggerAwareInterface
      */
     public function publish($topic, $eventName, $payload)
     {
-        $event = new Event();
-        $event->setEventId(Uuid::uuid1())
-            ->setTopic($topic)
-            ->setEventName($eventName)
-            ->setPayload($payload)
-            ->setStatus(EventStatus::CREATE());
-        $violations = $this->validator->validate($event);
-        if ($violations->count() > 0) {
-            throw new ValidationException($violations);
-        }
-        $this->eventRepository->insert($event);
+        $event = $this->saveEvent($topic, $eventName, $payload);
         $this->jobFactory->create(NotifyJob::class, [
             'event_id' => $event->getEventId(),
         ])->put();
 
         return $event->getEventId();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function publishNow($topic, $eventName, $payload)
+    {
+        $event = $this->saveEvent($topic, $eventName, $payload);
+        $criteria = Criteria::create([
+            'topic' => $event->getTopic(),
+            'enabled' => true,
+        ]);
+        $subscribers = $this->subscriberRepository->findAllBy($criteria);
+
+        $failed = $this->eventBusNotifyService->send($event, $subscribers);
+        if (!empty($failed)) {
+            $this->jobFactory->create(__CLASS__, [
+                'event_id' => $event->getEventId(),
+                'retry_times' => 1,
+                'subscribers' => $subscribers,
+            ])
+                ->delay(5)
+                ->put();
+        }
+
+        return empty($failed);
     }
 
     /**
@@ -176,5 +199,22 @@ class EventBusServantImpl implements EventBusServant, LoggerAwareInterface
         $this->logger->info(static::TAG."清除 $logs 条日志记录");
 
         return $events;
+    }
+
+    protected function saveEvent($topic, $eventName, $payload): Event
+    {
+        $event = new Event();
+        $event->setEventId(Uuid::uuid1())
+            ->setTopic($topic)
+            ->setEventName($eventName)
+            ->setPayload($payload)
+            ->setStatus(EventStatus::CREATE());
+        $violations = $this->validator->validate($event);
+        if ($violations->count() > 0) {
+            throw new ValidationException($violations);
+        }
+        $this->eventRepository->insert($event);
+
+        return $event;
     }
 }

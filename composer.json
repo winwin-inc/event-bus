@@ -49,6 +49,29 @@
                 "kuiper\\db\\DbConfiguration",
                 "kuiper\\http\\client\\HttpClientConfiguration"
             ]
+        },
+        "tars": {
+            "serverName": "EventBusServer",
+            "manifest": [
+                "composer.json",
+                {
+                    "in": "src"
+                },
+                {
+                    "followLinks": true,
+                    "exclude": [
+                        "phpunit",
+                        "symfony/finder",
+                        "php-cs-fixer",
+                        "mockery",
+                        "hamcrest",
+                        "kuiper/vendor",
+                        "tars/vendor",
+                        "tars-gen"
+                    ],
+                    "in": "vendor"
+                }
+            ]
         }
     }
 }

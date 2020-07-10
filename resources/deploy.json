@@ -1,0 +1,37 @@
+{
+    "application": "WinwinRpc",
+    "server_name": "EventBusServer",
+    "server_type": "tars_php",
+    "template_name": "winwin.tarsphp",
+    "node_name": "172.19.0.3",
+    "enable_set": false,
+    "set_name": "",
+    "set_area": "",
+    "set_group": "",
+    "operator": "",
+    "developer": "",
+    "adapters": [
+        {
+            "obj_name": "EventBusObj",
+            "bind_ip": "172.19.0.3",
+            "port": 10101,
+            "port_type": "tcp",
+            "protocol": "tars",
+            "thread_num": 1,
+            "max_connections": 100000,
+            "queuecap": 50000,
+            "queuetimeout": 20000
+        },
+        {
+            "obj_name": "JobStatObj",
+            "bind_ip": "172.19.0.3",
+            "port": 10101,
+            "port_type": "tcp",
+            "protocol": "tars",
+            "thread_num": 1,
+            "max_connections": 100000,
+            "queuecap": 50000,
+            "queuetimeout": 20000
+        }
+    ]
+}

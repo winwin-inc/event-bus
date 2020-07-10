@@ -34,6 +34,20 @@ interface EventBusServant
 
     /**
      * @TarsParameter(name = "topic", type = "string")
+     * @TarsParameter(name = "event", type = "string")
+     * @TarsParameter(name = "payload", type = "string")
+     * @TarsReturnType(type = "bool")
+     *
+     * @param string $topic
+     * @param string $event
+     * @param string $payload
+     *
+     * @return bool
+     */
+    public function publishNow($topic, $event, $payload);
+
+    /**
+     * @TarsParameter(name = "topic", type = "string")
      * @TarsParameter(name = "handler", type = "string")
      * @TarsReturnType(type = "void")
      *
