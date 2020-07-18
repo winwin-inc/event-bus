@@ -6,8 +6,8 @@
        #     enable_php_server=1
 			# node=tars.tarsnode.ServerObj@tcp -h 127.0.0.1 -p 19386 -t 60000
 			deactivating-timeout=3000
-			app=PHPDemo
-			server=PHPTcpServer
+			app=WinwinRpc
+			server=EventBusServer
 			localip=127.0.0.1
 			local=tcp -h 127.0.0.1 -p 18081 -t 3000
 			basepath=.
@@ -27,28 +27,28 @@
 			task_worker_num=1
 			dispatch_mode=2
 			daemonize=0
-			<PHPDemo.PHPTcpServer.EventBusObjAdapter>
+			<WinwinRpc.EventBusServer.EventBusObjAdapter>
 				allow
 				endpoint=tcp -h 127.0.0.1 -p 18081 -t 60000
-				handlegroup=PHPDemo.PHPTcpServer.EventBusObjAdapter
+				handlegroup=WinwinRpc.EventBusServer.EventBusObjAdapter
 				maxconns=200000
 				protocol=tars
 				queuecap=10000
 				queuetimeout=60000
-				servant=PHPDemo.PHPTcpServer.EventBusObj
+				servant=WinwinRpc.EventBusServer.EventBusObj
 				threads=5
-			</PHPDemo.PHPTcpServer.EventBusObjAdapter>
-			<PHPDemo.PHPTcpServer.JobStatObjAdapter>
+			</WinwinRpc.EventBusServer.EventBusObjAdapter>
+			<WinwinRpc.EventBusServer.JobStatObjAdapter>
 				allow
 				endpoint=tcp -h 127.0.0.1 -p 18081 -t 60000
-				handlegroup=PHPDemo.PHPTcpServer.JobStatObjAdapter
+				handlegroup=WinwinRpc.EventBusServer.JobStatObjAdapter
 				maxconns=200000
 				protocol=tars
 				queuecap=10000
 				queuetimeout=60000
-				servant=PHPDemo.PHPTcpServer.JobStatObj
+				servant=WinwinRpc.EventBusServer.JobStatObj
 				threads=5
-			</PHPDemo.PHPTcpServer.JobStatObjAdapter>
+			</WinwinRpc.EventBusServer.JobStatObjAdapter>
 		</server>
 		<client>
 			asyncthread=3
@@ -59,7 +59,7 @@
 			stat=tars.tarsstat.StatObj
 			property=tars.tarsproperty.PropertyObj
 			report-interval=60000
-			modulename=PHPDemo.PHPTcpServer
+			modulename=WinwinRpc.EventBusServer
 			sample-rate=100000
 			max-sample-count=50
 		</client>

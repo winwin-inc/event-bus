@@ -11,10 +11,9 @@
         "guzzlehttp/guzzle": "^7.0",
         "nesbot/carbon": "^2.36",
         "ramsey/uuid": "^4.0",
-        "symfony/validator": "^5.1",
         "vlucas/phpdotenv": "^5.0",
         "wenbinye/tars": "^0.1",
-        "winwin/job-queue": "dev-feature-swoole"
+        "winwin/job-queue": "^0.3"
     },
     "require-dev": {
         "kuiper/component-installer": "^0.1.0",
@@ -51,27 +50,7 @@
             ]
         },
         "tars": {
-            "serverName": "EventBusServer",
-            "manifest": [
-                "composer.json",
-                {
-                    "in": "src"
-                },
-                {
-                    "followLinks": true,
-                    "exclude": [
-                        "phpunit",
-                        "symfony/finder",
-                        "php-cs-fixer",
-                        "mockery",
-                        "hamcrest",
-                        "kuiper/vendor",
-                        "tars/vendor",
-                        "tars-gen"
-                    ],
-                    "in": "vendor"
-                }
-            ]
+            "serverName": "EventBusServer"
         }
     }
 }

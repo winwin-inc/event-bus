@@ -26,7 +26,7 @@ return [
         ],
         'logging' => [
             'level' => [
-                'wenbinye\\tars' => 'debug',
+                # 'wenbinye\\tars' => 'debug',
             ],
         ],
     ],

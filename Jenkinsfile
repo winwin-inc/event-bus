@@ -5,11 +5,13 @@ pipeline {
     stages {
         stage('build') {
             steps {
-                sh 'composer install'
-                sh 'cp tests/env.ci tests/.env'
-                sh 'db.phar sync --env tests/.env --engine memory -n -t resources/schema.yaml'
-                sh 'winner.phar lint src/'
-                sh 'php -d memory_limit=-1 vendor/bin/phpunit tests'
+                sh 'composer72 install'
+            }
+        }
+        
+        stage('deploy') {
+            steps {
+                sh 'echo $GIT_BRANCH'
             }
         }
     }
