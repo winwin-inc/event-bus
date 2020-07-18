@@ -1,6 +1,5 @@
 .env
 .php_cs.cache
-composer.lock
 /tests/.env
 /vendor/
 /runtime/
